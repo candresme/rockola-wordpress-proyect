@@ -193,18 +193,43 @@ class Rockola_DB {
     public function save_submission($data) {
         global $wpdb;
 
+        $insert_data = array(
+            'user_id' => isset($data['user_id']) ? $data['user_id'] : 0,
+            'track_name' => isset($data['track_name']) ? $data['track_name'] : 'Unknown',
+            'artist_name' => isset($data['artist_name']) ? $data['artist_name'] : 'Unknown',
+            'album_name' => isset($data['album_name']) ? $data['album_name'] : '',
+            'spotify_uri' => isset($data['track_uri']) ? $data['track_uri'] : (isset($data['spotify_uri']) ? $data['spotify_uri'] : ''),
+            'genre' => isset($data['genre']) ? $data['genre'] : '',
+            'created_at' => current_time('mysql')
+        );
+
+        $formats = array('%d', '%s', '%s', '%s', '%s', '%s', '%s');
+
+        // Agregar campos opcionales si existen en la tabla
+        if (isset($data['track_id'])) {
+            $insert_data['track_id'] = $data['track_id'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['image_url'])) {
+            $insert_data['image_url'] = $data['image_url'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['preview_url'])) {
+            $insert_data['preview_url'] = $data['preview_url'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['user_ip'])) {
+            $insert_data['user_ip'] = $data['user_ip'];
+            $formats[] = '%s';
+        }
+
         $result = $wpdb->insert(
             $this->table_submissions,
-            array(
-                'user_id' => $data['user_id'],
-                'track_name' => $data['track_name'],
-                'artist_name' => $data['artist_name'],
-                'album_name' => isset($data['album_name']) ? $data['album_name'] : '',
-                'spotify_uri' => isset($data['spotify_uri']) ? $data['spotify_uri'] : '',
-                'genre' => isset($data['genre']) ? $data['genre'] : '',
-                'created_at' => current_time('mysql')
-            ),
-            array('%d', '%s', '%s', '%s', '%s', '%s', '%s')
+            $insert_data,
+            $formats
         );
 
         if ($result === false) {
@@ -257,5 +282,135 @@ class Rockola_DB {
         );
 
         return $stats;
+    }
+
+    /**
+     * Buscar usuario por email o whatsapp
+     */
+    public function find_user($email, $whatsapp) {
+        global $wpdb;
+
+        $conditions = array();
+        $values = array();
+
+        if (!empty($email)) {
+            $conditions[] = "email = %s";
+            $values[] = $email;
+        }
+
+        if (!empty($whatsapp)) {
+            $conditions[] = "whatsapp = %s";
+            $values[] = $whatsapp;
+        }
+
+        if (empty($conditions)) {
+            return null;
+        }
+
+        $where = implode(' OR ', $conditions);
+        $query = "SELECT * FROM {$this->table_users} WHERE {$where} LIMIT 1";
+
+        if (!empty($values)) {
+            $query = $wpdb->prepare($query, $values);
+        }
+
+        $user = $wpdb->get_row($query);
+
+        return $user;
+    }
+
+    /**
+     * Crear nuevo usuario
+     */
+    public function create_user($data) {
+        global $wpdb;
+
+        $result = $wpdb->insert(
+            $this->table_users,
+            array(
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'whatsapp' => isset($data['whatsapp']) ? $data['whatsapp'] : '',
+                'birthday' => isset($data['birthday']) ? $data['birthday'] : null,
+                'created_at' => current_time('mysql')
+            ),
+            array('%s', '%s', '%s', '%s', '%s')
+        );
+
+        if ($result === false) {
+            error_log('Error al crear usuario: ' . $wpdb->last_error);
+            return false;
+        }
+
+        return $wpdb->insert_id;
+    }
+
+    /**
+     * Actualizar usuario existente
+     */
+    public function update_user($user_id, $data) {
+        global $wpdb;
+
+        $update_data = array();
+        $formats = array();
+
+        if (isset($data['name'])) {
+            $update_data['name'] = $data['name'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['email'])) {
+            $update_data['email'] = $data['email'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['whatsapp'])) {
+            $update_data['whatsapp'] = $data['whatsapp'];
+            $formats[] = '%s';
+        }
+
+        if (isset($data['birthday'])) {
+            $update_data['birthday'] = $data['birthday'];
+            $formats[] = '%s';
+        }
+
+        if (empty($update_data)) {
+            return false;
+        }
+
+        $result = $wpdb->update(
+            $this->table_users,
+            $update_data,
+            array('id' => $user_id),
+            $formats,
+            array('%d')
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Verificar si el usuario ya envió esta canción hoy
+     */
+    public function check_duplicate_today($user_id, $track_id) {
+        global $wpdb;
+
+        $today = current_time('Y-m-d');
+
+        // Verificar si existe columna spotify_uri o track_id
+        $track_uri = 'spotify:track:' . $track_id;
+
+        $count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$this->table_submissions}
+            WHERE user_id = %d
+            AND DATE(created_at) = %s
+            AND (spotify_uri = %s OR track_id = %s)",
+            $user_id,
+            $today,
+            $track_uri,
+            $track_id
+        ));
+
+        return intval($count) > 0;
     }
 }
