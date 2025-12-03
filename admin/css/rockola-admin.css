@@ -1,0 +1,95 @@
+/**
+ * Admin Styles for WP Spotify Rockola Pro
+ */
+
+/* Contenedor principal */
+.rockola-wrap {
+    margin: 20px 20px 0 0;
+}
+
+/* Header */
+.rockola-header {
+    background: #fff;
+    padding: 20px;
+    border-left: 4px solid #1DB954; /* Spotify Green */
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rockola-header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+}
+
+/* Grid System para el Dashboard */
+.rockola-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.rockola-col-left {
+    flex: 1;
+    min-width: 300px;
+}
+
+.rockola-col-right {
+    flex: 2;
+    min-width: 400px;
+}
+
+/* Tarjetas (Widgets) */
+.rockola-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.rockola-card h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+    color: #23282d;
+    font-size: 1.2em;
+}
+
+/* Botón Spotify */
+.btn-spotify {
+    background-color: #1DB954;
+    color: #fff !important;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 500px; /* Pill shape */
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+}
+
+.btn-spotify:hover {
+    background-color: #1ed760;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+.status-connected {
+    background: #dff0d8;
+    color: #3c763d;
+    border: 1px solid #d6e9c6;
+}
+
+/* Tabla de estadísticas */
+.rockola-table-container {
+    overflow-x: auto;
+}
