@@ -1,4 +1,9 @@
 <?php
+/**
+ * Clase principal del frontend de Rockola
+ * Versión 2.0 - Mejorada con UX optimizada y diseño moderno
+ */
+
 class Rockola_Public {
     
     public function __construct() {
@@ -10,339 +15,619 @@ class Rockola_Public {
     }
     
     /**
-     * Display the rockola form - CON VALIDACIÓN DE USUARIO
+     * Display the rockola form - VERSIÓN MEJORADA
      */
     public function display_rockola_form($atts = array()) {
+        // Obtener límite desde configuración (por defecto 3)
+        $options = get_option('rockola_settings', array());
+        $daily_limit = isset($options['daily_limit']) ? intval($options['daily_limit']) : 3;
+        
         // Atributos por defecto
         $atts = shortcode_atts(array(
-            'max_songs' => 3,
+            'max_songs' => $daily_limit,
             'show_preview' => 'yes'
         ), $atts);
         
         ob_start();
         ?>
         <div id="rockola-spotify-app" class="rockola-container">
-            <!-- PASO 0: Validación de usuario -->
+            
+            <!-- PASO 0: Verificación simplificada -->
             <div class="rockola-step" id="rockola-step-0">
                 <h3>🎵 Bienvenido a la Rockola</h3>
-                <p style="margin-bottom: 20px; color: #666;">Para solicitar canciones, primero verifica tu identidad</p>
+                <p>Pide tus canciones favoritas y disfruta de la mejor música</p>
                 
                 <div class="rockola-form">
                     <div class="rockola-form-group">
-                        <label for="rockola-verify-email">Correo Electrónico *</label>
-                        <input type="email" id="rockola-verify-email" name="verify_email" placeholder="ejemplo@email.com" required>
-                        <small style="display: block; margin-top: 5px; color: #666;">O ingresa tu número de WhatsApp</small>
+                        <label>Identificación *</label>
+                        <input type="email" id="rockola-verify-email" placeholder="Correo electrónico">
+                        <small>O</small>
+                        <input type="tel" id="rockola-verify-whatsapp" placeholder="Número de WhatsApp" style="margin-top: 12px;">
+                        <small style="margin-top: 8px;">Ingresa al menos uno para continuar</small>
                     </div>
                     
-                    <div class="rockola-form-group">
-                        <label for="rockola-verify-whatsapp">Número de WhatsApp</label>
-                        <input type="tel" id="rockola-verify-whatsapp" name="verify_whatsapp" placeholder="+57 300 123 4567">
-                        <small style="display: block; margin-top: 5px; color: #666;">Ingresa al menos uno de los dos campos</small>
-                    </div>
-                    
-                    <div id="rockola-verify-message" style="display: none; margin-bottom: 15px; padding: 10px; border-radius: 5px;"></div>
+                    <div id="rockola-verify-message" class="rockola-message" style="display: none;"></div>
                     
                     <button type="button" id="rockola-verify-user" class="rockola-btn">
-                        Verificar y Continuar →
+                        Continuar →
                     </button>
                 </div>
             </div>
             
-            <!-- PASO 1: Registro o Actualización (oculto inicialmente) -->
+            <!-- PASO 1: Registro/Actualización -->
             <div class="rockola-step" id="rockola-step-1" style="display: none;">
                 <h3 id="rockola-step1-title">Completa tu Información</h3>
-                <p id="rockola-step1-description" style="margin-bottom: 20px; color: #666;"></p>
+                <p id="rockola-step1-description"></p>
                 
                 <div class="rockola-form">
                     <div class="rockola-form-group">
-                        <label for="rockola-name">Nombre Completo *</label>
+                        <label>Nombre Completo *</label>
                         <input type="text" id="rockola-name" name="name" required>
                     </div>
                     
                     <div class="rockola-form-group">
-                        <label for="rockola-email">Correo Electrónico *</label>
-                        <input type="email" id="rockola-email" name="email" required readonly style="background-color: #f5f5f5;">
+                        <label>Correo Electrónico *</label>
+                        <input type="email" id="rockola-email" name="email" required>
                     </div>
                     
                     <div class="rockola-form-group">
-                        <label for="rockola-whatsapp">WhatsApp *</label>
+                        <label>WhatsApp *</label>
                         <input type="tel" id="rockola-whatsapp" name="whatsapp" required>
                     </div>
                     
                     <div class="rockola-form-group">
-                        <label for="rockola-birthday">Fecha de Cumpleaños</label>
+                        <label>Fecha de Cumpleaños (Opcional)</label>
                         <input type="date" id="rockola-birthday" name="birthday">
-                        <small style="display: block; margin-top: 5px; color: #666;">Opcional, para celebrar tu cumpleaños</small>
+                        <small>Te enviaremos una sorpresa en tu día especial 🎂</small>
                     </div>
                     
-                    <div id="rockola-session-info" style="display: none; background: #e8f4ff; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
-                        <small>👋 Bienvenido de nuevo. Tus datos han sido cargados automáticamente.</small>
+                    <div id="rockola-session-info" style="display: none;" class="rockola-message success">
+                        <small>👋 Bienvenido de nuevo. Tus datos han sido cargados.</small>
                     </div>
                     
                     <div class="rockola-actions">
-                        <button type="button" id="rockola-back-to-verify" class="rockola-btn" style="background: #6c757d;">
+                        <button type="button" id="rockola-back-to-verify" class="rockola-btn rockola-btn-secondary">
                             ← Volver
                         </button>
-                        <button type="button" id="rockola-next-step" class="rockola-btn">
-                            Buscar Canciones →
+                        <button type="button" id="rockola-save-and-continue" class="rockola-btn">
+                            Guardar y Continuar →
                         </button>
                     </div>
                 </div>
             </div>
             
-            <!-- PASO 2: Buscar canciones (oculto inicialmente) -->
+            <!-- PASO 2: Buscar y seleccionar música -->
             <div class="rockola-step" id="rockola-step-2" style="display: none;">
-                <h3>🎶 Buscar Canción</h3>
-                <div id="rockola-user-info" style="background: #e8f4ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <p style="margin: 0;">
-                        <strong>👋 Hola, <span id="rockola-user-name"></span></strong><br>
-                        <small>Disponibles hoy: <span id="rockola-daily-remaining" style="font-weight: bold;">Cargando...</span> canciones</small>
+                
+                <!-- User Info Card -->
+                <div class="rockola-user-info">
+                    <p>
+                        <strong>👋 Hola, <span id="rockola-user-name"></span></strong>
+                        <small>Disponibles hoy: <strong id="rockola-daily-remaining">...</strong> canciones</small>
                     </p>
+                    <button id="rockola-edit-info" class="rockola-btn-icon" title="Editar información">
+                        ✏️ Editar
+                    </button>
                 </div>
                 
+                <h3>🎶 Buscar Canciones</h3>
+                
+                <!-- Barra de búsqueda -->
                 <div class="rockola-search-box">
                     <input type="text" id="rockola-search" placeholder="Buscar canción o artista...">
                     <button id="rockola-search-btn" class="rockola-btn">Buscar</button>
                 </div>
                 
+                <!-- Resultados de búsqueda -->
                 <div id="rockola-results" class="rockola-results"></div>
                 
-                <div id="rockola-selected" class="rockola-selected">
-                    <h4>Seleccionadas: <span id="rockola-count">0</span>/<?php echo $atts['max_songs']; ?></h4>
+                <!-- Lista flotante de canciones seleccionadas -->
+                <div id="rockola-selected-container" class="rockola-selected" style="display: none;">
+                    <h4>🎵 Tu Lista: <span id="rockola-count">0</span>/<?php echo $atts['max_songs']; ?></h4>
                     <div id="rockola-selected-list"></div>
+                    <button id="rockola-submit-main" class="rockola-btn rockola-btn-primary" disabled>
+                        🚀 Enviar a Spotify
+                    </button>
                 </div>
                 
-                <div class="rockola-actions">
-                    <button id="rockola-prev-step" class="rockola-btn">← Atrás</button>
-                    <button id="rockola-submit" class="rockola-btn" disabled>Enviar Solicitud</button>
-                </div>
             </div>
             
             <div id="rockola-message"></div>
         </div>
         
-        <!-- Popup Overlay (OCULTO por defecto - sin display:flex!) -->
-        <div id="rockola-popup-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999;">
-            <div id="rockola-popup" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; max-width: 400px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); text-align: center;">
-                <h3 id="rockola-popup-title" style="margin-top: 0;"></h3>
+        <!-- Popup Overlay -->
+        <div id="rockola-popup-overlay" style="display: none;">
+            <div id="rockola-popup">
+                <h3 id="rockola-popup-title"></h3>
                 <p id="rockola-popup-message"></p>
-                <button id="rockola-popup-close" class="rockola-btn" style="width: 100%; margin-top: 20px;">Entendido</button>
+                <button id="rockola-popup-close" class="rockola-btn">Entendido</button>
             </div>
         </div>
         
         <style>
+        /* ESTILOS MODERNOS ESTILO SPOTIFY */
+        
+        :root {
+            --spotify-green: #1DB954;
+            --spotify-green-hover: #1ed760;
+            --spotify-black: #191414;
+            --spotify-dark-gray: #121212;
+            --spotify-gray: #535353;
+            --spotify-light-gray: #b3b3b3;
+            --spotify-white: #ffffff;
+            --spotify-card: #282828;
+        }
+        
         .rockola-container {
-            max-width: 600px;
+            max-width: 900px;
             margin: 0 auto;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            padding: 20px;
         }
+        
         .rockola-step {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            background: var(--spotify-card);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            margin-bottom: 24px;
+            animation: fadeInUp 0.4s ease-out;
         }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .rockola-step h3 {
+            color: var(--spotify-white);
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            letter-spacing: -0.04em;
+        }
+        
+        .rockola-step p {
+            color: var(--spotify-light-gray);
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 0 0 32px 0;
+        }
+        
         .rockola-form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
+        
         .rockola-form-group label {
             display: block;
+            color: var(--spotify-white);
+            font-size: 14px;
+            font-weight: 700;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
+        
         .rockola-form-group input {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
+            padding: 14px 16px;
+            background: var(--spotify-black);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            color: var(--spotify-white);
             font-size: 16px;
-            transition: border-color 0.3s;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
         }
+        
         .rockola-form-group input:focus {
-            border-color: #1DB954;
+            border-color: var(--spotify-green);
             outline: none;
+            background: var(--spotify-dark-gray);
         }
-        .rockola-form-group input:read-only {
-            background-color: #f5f5f5;
-            cursor: not-allowed;
+        
+        .rockola-form-group input::placeholder {
+            color: var(--spotify-gray);
         }
+        
+        .rockola-form-group small {
+            display: block;
+            margin-top: 8px;
+            color: var(--spotify-light-gray);
+            font-size: 13px;
+        }
+        
         .rockola-btn {
-            background: #1DB954;
-            color: white;
+            background: var(--spotify-green);
+            color: var(--spotify-white);
             border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
+            padding: 16px 48px;
+            border-radius: 500px;
             font-size: 16px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
+            letter-spacing: 0.1em;
+            box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
+            width: 100%;
         }
-        .rockola-btn:hover {
-            background: #1ed760;
-            transform: translateY(-1px);
+        
+        .rockola-btn:hover:not(:disabled) {
+            background: var(--spotify-green-hover);
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(29, 185, 84, 0.4);
         }
+        
         .rockola-btn:disabled {
-            background: #ccc;
+            background: var(--spotify-gray);
             cursor: not-allowed;
             transform: none;
+            box-shadow: none;
+            opacity: 0.5;
         }
+        
+        .rockola-btn-secondary {
+            background: transparent;
+            border: 2px solid var(--spotify-light-gray);
+            color: var(--spotify-white);
+            box-shadow: none;
+        }
+        
+        .rockola-btn-secondary:hover {
+            border-color: var(--spotify-white);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .rockola-btn-primary {
+            background: var(--spotify-green);
+            font-size: 18px;
+            padding: 18px;
+        }
+        
         .rockola-actions {
             display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 24px;
         }
-        .rockola-search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .rockola-search-box input {
+        
+        .rockola-actions .rockola-btn {
             flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
         }
-        .rockola-results {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 20px;
+        
+        .rockola-user-info {
+            background: linear-gradient(135deg, var(--spotify-green) 0%, #1aa34a 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .rockola-selected {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+        
+        .rockola-user-info p {
+            margin: 0;
+            color: var(--spotify-white);
         }
-        #rockola-message {
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 20px;
-            display: none;
+        
+        .rockola-user-info strong {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 4px;
         }
-        .rockola-message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .rockola-message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .rockola-message.warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-        .rockola-add-btn {
-            background: #1DB954;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
+        
+        .rockola-user-info small {
+            color: rgba(255, 255, 255, 0.9);
             font-size: 14px;
         }
-        .rockola-add-btn:hover {
-            background: #1ed760;
+        
+        .rockola-btn-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 500px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
         }
-        .rockola-add-btn.added {
-            background: #28a745 !important;
-            cursor: default !important;
-            opacity: 0.7;
+        
+        .rockola-btn-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
         }
-        .rockola-add-btn:disabled {
-            background: #6c757d !important;
-            cursor: not-allowed !important;
+        
+        .rockola-search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
         }
+        
+        .rockola-search-box input {
+            flex: 1;
+            padding: 16px 20px;
+            background: var(--spotify-black);
+            border: 2px solid transparent;
+            border-radius: 500px;
+            color: var(--spotify-white);
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        .rockola-search-box input:focus {
+            border-color: var(--spotify-green);
+            outline: none;
+        }
+        
+        .rockola-search-box .rockola-btn {
+            width: auto;
+            padding: 16px 32px;
+        }
+        
+        .rockola-results {
+            max-height: 500px;
+            overflow-y: auto;
+            margin-bottom: 24px;
+            border-radius: 12px;
+            background: var(--spotify-black);
+        }
+        
+        .rockola-results::-webkit-scrollbar {
+            width: 12px;
+        }
+        
+        .rockola-results::-webkit-scrollbar-track {
+            background: var(--spotify-dark-gray);
+        }
+        
+        .rockola-results::-webkit-scrollbar-thumb {
+            background: var(--spotify-gray);
+            border-radius: 12px;
+        }
+        
         .rockola-track {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+            padding: 16px 20px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            transition: background 0.3s;
+            gap: 16px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+        
         .rockola-track:hover {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.1);
         }
+        
         .rockola-track img {
-            width: 50px;
-            height: 50px;
+            width: 56px;
+            height: 56px;
             border-radius: 4px;
             object-fit: cover;
         }
-        @keyframes pulseAdded {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
+        
+        .rockola-track-info {
+            flex: 1;
         }
-        .track-added {
-            animation: pulseAdded 0.5s ease-in-out;
+        
+        .rockola-track-info strong {
+            display: block;
+            color: var(--spotify-white);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
         }
-        /* Popup Overlay - VERSIÓN CORREGIDA */
+        
+        .rockola-track-info small {
+            color: var(--spotify-light-gray);
+            font-size: 14px;
+        }
+        
+        .rockola-add-btn {
+            background: transparent;
+            color: var(--spotify-green);
+            border: 2px solid var(--spotify-green);
+            padding: 10px 24px;
+            border-radius: 500px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .rockola-add-btn:hover:not(:disabled):not(.added) {
+            background: var(--spotify-green);
+            color: var(--spotify-white);
+            transform: scale(1.05);
+        }
+        
+        .rockola-add-btn.added {
+            background: var(--spotify-green);
+            color: var(--spotify-white);
+            border-color: var(--spotify-green);
+            cursor: default;
+        }
+        
+        .rockola-add-btn:disabled {
+            border-color: var(--spotify-gray);
+            color: var(--spotify-gray);
+            cursor: not-allowed;
+        }
+        
+        .rockola-selected {
+            position: sticky;
+            bottom: 20px;
+            background: linear-gradient(180deg, transparent 0%, var(--spotify-card) 20%, var(--spotify-card) 100%);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            animation: slideUp 0.4s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .rockola-selected h4 {
+            color: var(--spotify-white);
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+        }
+        
+        .rockola-selected h4 span {
+            color: var(--spotify-green);
+        }
+        
+        .rockola-selected-item {
+            background: var(--spotify-black);
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid var(--spotify-green);
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .rockola-selected-item strong {
+            color: var(--spotify-white);
+            font-size: 15px;
+            display: block;
+        }
+        
+        .rockola-selected-item small {
+            color: var(--spotify-light-gray);
+            font-size: 13px;
+        }
+        
+        .rockola-remove-btn {
+            background: transparent;
+            color: #ff4444;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 500px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+        
+        .rockola-remove-btn:hover {
+            background: rgba(255, 68, 68, 0.1);
+            transform: scale(1.05);
+        }
+        
         #rockola-popup-overlay {
-            display: none; /* ⬅️ SIN !important */
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
             z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
+        
         #rockola-popup {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 400px;
+            background: var(--spotify-card);
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 480px;
             width: 90%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+            animation: popIn 0.3s ease-out;
         }
-
+        
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
         #rockola-popup-title {
-            margin-top: 0;
-            font-size: 24px;
+            color: var(--spotify-white);
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 16px 0;
         }
-
+        
         #rockola-popup-message {
+            color: var(--spotify-light-gray);
             font-size: 16px;
             line-height: 1.6;
+            margin-bottom: 24px;
         }
-
-        #rockola-popup-close {
-            background: #1DB954;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            margin-top: 20px;
-            transition: background 0.3s;
+        
+        .rockola-message {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            font-size: 14px;
+            animation: slideInDown 0.3s ease-out;
         }
-
-        #rockola-popup-close:hover {
-            background: #1ed760;
+        
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .rockola-message.success {
+            background: rgba(29, 185, 84, 0.2);
+            color: var(--spotify-green);
+            border: 1px solid var(--spotify-green);
+        }
+        
+        .rockola-message.error {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+        
+        .rockola-message.warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        
+        @media (max-width: 768px) {
+            .rockola-step {
+                padding: 24px;
+            }
+            
+            .rockola-step h3 {
+                font-size: 24px;
+            }
+            
+            .rockola-btn {
+                padding: 14px 32px;
+                font-size: 14px;
+            }
+            
+            .rockola-search-box {
+                flex-direction: column;
+            }
+            
+            .rockola-actions {
+                flex-direction: column;
+            }
         }
         </style>
         
         <script>
         jQuery(document).ready(function($) {
-            // Variables globales
+            // Configuración
             let selectedSongs = [];
             let addedTrackUris = [];
             const maxSongs = <?php echo $atts['max_songs']; ?>;
@@ -356,12 +641,11 @@ class Rockola_Public {
                 isNewUser: false
             };
             
-            // FUNCIÓN PRINCIPAL DEL POPUP - VERSIÓN CORREGIDA 1
+            console.log("🎵 Rockola inicializada - Límite diario:", maxSongs);
+            
+            // ==================== FUNCIONES AUXILIARES ====================
+            
             function showPopup(title, message, type = 'info') {
-                console.log("🔍 showPopup llamado:", {title, message, type});
-                console.log("🔍 Popup overlay existe:", $('#rockola-popup-overlay').length);
-                console.log("🔍 Popup overlay visible:", $('#rockola-popup-overlay').is(':visible'));
-                
                 const colors = {
                     'info': '#1DB954',
                     'warning': '#f0ad4e',
@@ -369,56 +653,81 @@ class Rockola_Public {
                     'success': '#28a745'
                 };
                 
+                const icons = {
+                    'info': 'ℹ️',
+                    'warning': '⚠️',
+                    'error': '❌',
+                    'success': '✅'
+                };
+                
                 const popupColor = colors[type] || colors.info;
                 
-                // Actualizar contenido
-                $('#rockola-popup-title').text(title).css('color', popupColor);
+                $('#rockola-popup-title')
+                    .html(icons[type] + ' ' + title)
+                    .css('color', popupColor);
+                
                 $('#rockola-popup-message').html(message);
                 $('#rockola-popup-close').css('background', popupColor);
-                
-                // Mostrar con animación
                 $('#rockola-popup-overlay').fadeIn(300);
                 
-                // Enfocar el botón
-                setTimeout(() => {
-                    $('#rockola-popup-close').focus();
-                }, 300);
+                setTimeout(() => $('#rockola-popup-close').focus(), 300);
+                
+                if (type === 'success') {
+                    setTimeout(() => $('#rockola-popup-overlay').fadeOut(300), 5000);
+                }
             }
             
-                // CONFIGURAR EVENTOS DEL POPUP - CORREGIDO
-                $(document).on('click', '#rockola-popup-close', function() {
+            function showMessage(text, type) {
+                const $msg = $('#rockola-message');
+                $msg.removeClass('success error warning')
+                    .addClass('rockola-message ' + type)
+                    .html(text)
+                    .fadeIn();
+                
+                setTimeout(() => $msg.fadeOut(), 4000);
+            }
+            
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            function isValidEmail(email) {
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            }
+            
+            // ==================== EVENTOS DEL POPUP ====================
+            
+            $(document).on('click', '#rockola-popup-close', function() {
+                $('#rockola-popup-overlay').fadeOut(300);
+            });
+            
+            $(document).on('click', '#rockola-popup-overlay', function(e) {
+                if (e.target.id === 'rockola-popup-overlay') {
+                    $(this).fadeOut(300);
+                }
+            });
+            
+            $(document).on('keydown', function(e) {
+                if (e.key === 'Escape' && $('#rockola-popup-overlay').is(':visible')) {
                     $('#rockola-popup-overlay').fadeOut(300);
-                });
-                
-                $(document).on('click', '#rockola-popup-overlay', function(e) {
-                    if (e.target.id === 'rockola-popup-overlay') {
-                        $(this).fadeOut(300);
-                    }
-                });
-                
-                $(document).on('keydown', function(e) {
-                    if (e.key === 'Escape' && $('#rockola-popup-overlay').is(':visible')) {
-                        $('#rockola-popup-overlay').fadeOut(300);
-                    }
+                }
             });
             
-            // Prevenir que clic en el popup cierre el overlay
-            $(document).on('click', '#rockola-popup', function(e) {
-                e.stopPropagation();
-            });
+            // ==================== PASO 0: VERIFICACIÓN SIMPLIFICADA ====================
             
-            // ==================== PASO 0: VERIFICACIÓN DE USUARIO ====================
             $('#rockola-verify-user').on('click', function() {
                 const email = $('#rockola-verify-email').val().trim();
                 const whatsapp = $('#rockola-verify-whatsapp').val().trim();
                 
                 if (!email && !whatsapp) {
-                    showVerificationMessage('Por favor, ingresa tu correo o número de WhatsApp', 'error');
+                    showMessage('Por favor, ingresa tu correo o número de WhatsApp', 'error');
                     return;
                 }
                 
                 if (email && !isValidEmail(email)) {
-                    showVerificationMessage('Correo electrónico inválido', 'error');
+                    showMessage('Correo electrónico inválido', 'error');
                     return;
                 }
                 
@@ -439,7 +748,6 @@ class Rockola_Public {
                             const remaining = response.data.remaining || 0;
                             
                             if (userData) {
-                                // Usuario existe
                                 userSession = {
                                     id: userData.id,
                                     name: userData.name,
@@ -450,30 +758,17 @@ class Rockola_Public {
                                     isNewUser: false
                                 };
                                 
-                                // Mostrar paso 1 con datos precargados
-                                $('#rockola-name').val(userData.name);
-                                $('#rockola-email').val(userData.email).prop('readonly', true);
-                                $('#rockola-whatsapp').val(userData.whatsapp);
-                                if (userData.birthday) {
-                                    $('#rockola-birthday').val(userData.birthday);
-                                }
+                                $('#rockola-user-name').text(userData.name);
+                                $('#rockola-daily-remaining').text(remaining);
                                 
-                                $('#rockola-step1-title').text('Actualiza tu Información');
-                                $('#rockola-step1-description').html(`
-                                    Hola <strong>${escapeHtml(userData.name)}</strong>!<br>
-                                    <small>Tienes <strong>${remaining}</strong> canciones disponibles para hoy.</small>
-                                `);
-                                
-                                $('#rockola-session-info').show();
-                                showVerificationMessage('Usuario verificado correctamente', 'success');
+                                showMessage('¡Bienvenido de nuevo ' + userData.name + '!', 'success');
                                 
                                 setTimeout(() => {
                                     $('#rockola-step-0').hide();
-                                    $('#rockola-step-1').show();
+                                    $('#rockola-step-2').show();
                                 }, 1000);
                                 
                             } else {
-                                // Usuario NO existe - mostrar formulario de registro
                                 userSession = {
                                     id: null,
                                     name: '',
@@ -484,17 +779,15 @@ class Rockola_Public {
                                     isNewUser: true
                                 };
                                 
-                                $('#rockola-email').val(email || '').prop('readonly', !!email);
+                                $('#rockola-email').val(email || '');
                                 $('#rockola-whatsapp').val(whatsapp || '');
                                 
                                 $('#rockola-step1-title').text('Completa tu Registro');
-                                $('#rockola-step1-description').html(`
-                                    Parece que es tu primera vez aquí.<br>
-                                    <small>Completa los siguientes datos para continuar.</small>
-                                `);
+                                $('#rockola-step1-description').html('Es tu primera vez aquí. Completa tus datos para continuar.');
                                 
                                 $('#rockola-session-info').hide();
-                                showVerificationMessage('Nuevo usuario detectado', 'info');
+                                
+                                showMessage('Nuevo usuario detectado', 'info');
                                 
                                 setTimeout(() => {
                                     $('#rockola-step-0').hide();
@@ -502,73 +795,40 @@ class Rockola_Public {
                                 }, 1000);
                             }
                         } else {
-                            showVerificationMessage('Error al verificar usuario: ' + (response.data.message || 'Error desconocido'), 'error');
+                            showMessage('Error al verificar usuario', 'error');
                         }
                     },
                     error: function() {
-                        showVerificationMessage('Error de conexión con el servidor', 'error');
+                        showMessage('Error de conexión', 'error');
                     },
                     complete: function() {
-                        $('#rockola-verify-user').prop('disabled', false).text('Verificar y Continuar →');
+                        $('#rockola-verify-user').prop('disabled', false).text('Continuar →');
                     }
                 });
             });
             
-            function showVerificationMessage(text, type) {
-                const $msg = $('#rockola-verify-message');
-                $msg.removeClass().addClass('rockola-message ' + type)
-                    .html(text)
-                    .fadeIn();
-                
-                if (type === 'success' || type === 'info') {
-                    setTimeout(() => {
-                        $msg.fadeOut();
-                    }, 3000);
-                }
-            }
-            
-            // Volver a verificación desde paso 1
             $('#rockola-back-to-verify').on('click', function() {
                 $('#rockola-step-1').hide();
                 $('#rockola-step-0').show();
-                $('#rockola-verify-message').hide();
             });
             
-            // ==================== PASO 1: REGISTRO/ACTUALIZACIÓN ====================
-            $('#rockola-next-step').on('click', function() {
-                // Validar formulario
-                let valid = true;
+            // ==================== PASO 1: GUARDAR INFORMACIÓN ====================
+            
+            $('#rockola-save-and-continue').on('click', function() {
                 const name = $('#rockola-name').val().trim();
                 const email = $('#rockola-email').val().trim();
                 const whatsapp = $('#rockola-whatsapp').val().trim();
                 
-                if (!name) {
-                    valid = false;
-                    $('#rockola-name').css('border-color', '#dc3545');
-                } else {
-                    $('#rockola-name').css('border-color', '#ddd');
-                }
-                
-                if (!email || !isValidEmail(email)) {
-                    valid = false;
-                    $('#rockola-email').css('border-color', '#dc3545');
-                } else {
-                    $('#rockola-email').css('border-color', '#ddd');
-                }
-                
-                if (!whatsapp) {
-                    valid = false;
-                    $('#rockola-whatsapp').css('border-color', '#dc3545');
-                } else {
-                    $('#rockola-whatsapp').css('border-color', '#ddd');
-                }
-                
-                if (!valid) {
-                    showMessage('Por favor, completa todos los campos requeridos correctamente', 'error');
+                if (!name || !email || !whatsapp) {
+                    showMessage('Por favor, completa todos los campos requeridos', 'error');
                     return;
                 }
                 
-                // Guardar/Actualizar usuario
+                if (!isValidEmail(email)) {
+                    showMessage('Correo electrónico inválido', 'error');
+                    return;
+                }
+                
                 const userData = {
                     name: name,
                     email: email,
@@ -591,7 +851,6 @@ class Rockola_Public {
                     },
                     success: function(response) {
                         if (response.success) {
-                            // Actualizar sesión
                             userSession.name = userData.name;
                             userSession.email = userData.email;
                             userSession.whatsapp = userData.whatsapp;
@@ -599,41 +858,49 @@ class Rockola_Public {
                             userSession.dailyRemaining = response.data.remaining || maxSongs;
                             userSession.id = response.data.user_id || userSession.id;
                             
-                            // Actualizar información en paso 2
                             $('#rockola-user-name').text(userData.name);
                             $('#rockola-daily-remaining').text(userSession.dailyRemaining);
                             
-                            // Guardar en localStorage
-                            localStorage.setItem('rockola_user_id', userSession.id);
-                            localStorage.setItem('rockola_user_name', userData.name);
-                            localStorage.setItem('rockola_user_email', userData.email);
-                            localStorage.setItem('rockola_user_whatsapp', userData.whatsapp);
-                            localStorage.setItem('rockola_last_visit', new Date().toISOString());
+                            showMessage('Información guardada correctamente', 'success');
                             
-                            // Ir al paso 2
-                            $('#rockola-step-1').hide();
-                            $('#rockola-step-2').show();
+                            setTimeout(() => {
+                                $('#rockola-step-1').hide();
+                                $('#rockola-step-2').show();
+                            }, 1000);
                             
                         } else {
-                            showMessage('Error: ' + (response.data.message || 'No se pudo guardar la información'), 'error');
+                            showMessage('Error al guardar: ' + (response.data.message || 'Error desconocido'), 'error');
                         }
                     },
                     error: function() {
                         showMessage('Error de conexión', 'error');
                     },
                     complete: function() {
-                        $('#rockola-next-step').prop('disabled', false).text('Buscar Canciones →');
+                        $('#rockola-save-and-continue').prop('disabled', false).text('Guardar y Continuar →');
                     }
                 });
             });
             
-            // ==================== PASO 2: BUSCAR CANCIONES ====================
-            $('#rockola-prev-step').on('click', function() {
+            // ==================== BOTÓN EDITAR INFORMACIÓN ====================
+            
+            $('#rockola-edit-info').on('click', function() {
+                $('#rockola-name').val(userSession.name);
+                $('#rockola-email').val(userSession.email);
+                $('#rockola-whatsapp').val(userSession.whatsapp);
+                $('#rockola-birthday').val(userSession.birthday);
+                
+                $('#rockola-step1-title').text('Editar Información');
+                $('#rockola-step1-description').html('Actualiza tus datos según sea necesario.');
+                $('#rockola-session-info').show();
+                
+                userSession.isNewUser = false;
+                
                 $('#rockola-step-2').hide();
                 $('#rockola-step-1').show();
             });
             
-            // Búsqueda
+            // ==================== PASO 2: BÚSQUEDA Y SELECCIÓN ====================
+            
             $('#rockola-search-btn').on('click', searchTracks);
             $('#rockola-search').on('keypress', function(e) {
                 if (e.which === 13) searchTracks();
@@ -646,7 +913,7 @@ class Rockola_Public {
                     return;
                 }
                 
-                $('#rockola-results').html('<div style="padding: 30px; text-align: center; color: #666;">Buscando canciones...</div>');
+                $('#rockola-results').html('<div style="padding: 40px; text-align: center; color: #b3b3b3;"><div style="font-size: 48px; margin-bottom: 16px;">🔍</div>Buscando canciones...</div>');
                 
                 $.ajax({
                     url: rockola_ajax.ajax_url,
@@ -660,18 +927,18 @@ class Rockola_Public {
                         if (response.success) {
                             displayResults(response.data.tracks || []);
                         } else {
-                            showMessage('Error: ' + (response.data.message || 'Búsqueda falló'), 'error');
+                            showMessage('Error en la búsqueda', 'error');
                         }
                     },
                     error: function() {
-                        showMessage('Error al conectar con el servidor', 'error');
+                        showMessage('Error de conexión', 'error');
                     }
                 });
             }
             
             function displayResults(tracks) {
                 if (tracks.length === 0) {
-                    $('#rockola-results').html('<div style="padding: 30px; text-align: center; color: #666;">No se encontraron canciones</div>');
+                    $('#rockola-results').html('<div style="padding: 40px; text-align: center; color: #b3b3b3;"><div style="font-size: 48px; margin-bottom: 16px;">😕</div>No se encontraron canciones</div>');
                     return;
                 }
                 
@@ -680,124 +947,98 @@ class Rockola_Public {
                     const trackName = escapeHtml(track.name);
                     const trackArtist = escapeHtml(track.artist);
                     const isAdded = addedTrackUris.includes(track.uri);
+                    const canAdd = userSession.dailyRemaining > selectedSongs.length;
                     
                     html += `
-                    <div class="rockola-track" data-uri="${track.uri}">
-                        <img src="${track.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMyQzJDMkMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iMjQiPjxhPC90ZXh0Pjwvc3ZnPg=='}" alt="${trackName}">
-                        <div style="flex: 1;">
-                            <strong>${trackName}</strong><br>
+                    <div class="rockola-track">
+                        <img src="${track.image || ''}" alt="${trackName}">
+                        <div class="rockola-track-info">
+                            <strong>${trackName}</strong>
                             <small>${trackArtist}</small>
                         </div>
                         <button class="rockola-add-btn ${isAdded ? 'added' : ''}" 
-                                data-track-id="${track.id}"
-                                data-track-name="${trackName}"
-                                data-track-artist="${trackArtist}"
-                                data-track-image="${track.image || ''}"
-                                data-track-uri="${track.uri}"
-                                ${isAdded ? 'disabled' : ''}
-                                ${userSession.dailyRemaining <= 0 ? 'disabled' : ''}>
-                            ${isAdded ? '✓ Añadido' : (userSession.dailyRemaining <= 0 ? 'Límite alcanzado' : 'Añadir')}
+                                data-track='${JSON.stringify(track)}'
+                                ${isAdded || !canAdd ? 'disabled' : ''}>
+                            ${isAdded ? '✓ Añadida' : (canAdd ? '+ Añadir' : 'Límite')}
                         </button>
                     </div>`;
                 });
                 
                 $('#rockola-results').html(html);
                 
-                // Bind add buttons
                 $('.rockola-add-btn:not(.added):not(:disabled)').on('click', function() {
-                    const $btn = $(this);
-                    const track = {
-                        id: $btn.data('track-id'),
-                        name: $btn.data('track-name'),
-                        artist: $btn.data('track-artist'),
-                        image: $btn.data('track-image'),
-                        uri: $btn.data('track-uri')
-                    };
-                    addTrack(track, $btn);
+                    const track = JSON.parse($(this).attr('data-track'));
+                    addTrack(track, $(this));
                 });
             }
             
-            function addTrack(track, $btn = null) {
-                // Verificar límite de selección por sesión
+            function addTrack(track, $btn) {
                 if (selectedSongs.length >= maxSongs) {
                     showPopup(
                         'Límite de Selección',
-                        `Solo puedes seleccionar hasta ${maxSongs} canciones por visita.<br><br>
-                        <small>Envía las canciones seleccionadas para poder seleccionar más.</small>`,
-                        'warning'
-                    );
-                    return;
-                }
-                
-                // Verificar si ya fue añadido
-                if (selectedSongs.find(t => t.uri === track.uri)) {
-                    showMessage('Esta canción ya está seleccionada', 'warning');
-                    return;
-                }
-                
-                // Verificar límite diario - CORREGIDO
-                if (userSession.dailyRemaining <= 0) {
-                    showPopup(
-                        'Límite Diario Alcanzado',
-                        'Has alcanzado tu límite de canciones para hoy.<br><br>Podrás enviar más canciones mañana.',
-                        'warning'
-                    );
-                    return;
-                }
-                
-                // Verificar que al añadir esta canción no exceda el límite diario
-                if (selectedSongs.length + 1 > userSession.dailyRemaining) {
-                    showPopup(
-                        'Límite Diario',
-                        `Solo te quedan ${userSession.dailyRemaining} canción${userSession.dailyRemaining > 1 ? 'es' : ''} disponible${userSession.dailyRemaining > 1 ? 's' : ''} para hoy.<br><br>
+                        `Solo puedes seleccionar hasta <strong>${maxSongs}</strong> canciones por vez.<br><br>
                         <small>Envía las canciones seleccionadas primero.</small>`,
                         'warning'
                     );
                     return;
                 }
                 
-                // Añadir a selección
-                selectedSongs.push(track);
-                addedTrackUris.push(track.uri);
-                updateSelectedList();
-                updateSubmitButton();
-                
-                // Actualizar botón
-                if ($btn) {
-                    $btn.addClass('added')
-                        .text('✓ Añadido')
-                        .prop('disabled', true);
-                    
-                    // Animación
-                    $btn.closest('.rockola-track').addClass('track-added');
-                    setTimeout(() => {
-                        $btn.closest('.rockola-track').removeClass('track-added');
-                    }, 500);
+                if (selectedSongs.find(t => t.uri === track.uri)) {
+                    showMessage('Esta canción ya está en tu lista', 'warning');
+                    return;
                 }
                 
-                showMessage(`✓ "${track.name}" añadida a tu selección`, 'success');
+                if (selectedSongs.length >= userSession.dailyRemaining) {
+                    showPopup(
+                        'Límite Diario Alcanzado',
+                        `Solo puedes añadir <strong>${userSession.dailyRemaining}</strong> canciones hoy.<br><br>
+                        <small>Podrás enviar más canciones mañana.</small>`,
+                        'warning'
+                    );
+                    return;
+                }
+                
+                selectedSongs.push(track);
+                addedTrackUris.push(track.uri);
+                
+                if ($btn) {
+                    $btn.addClass('added')
+                        .text('✓ Añadida')
+                        .prop('disabled', true);
+                }
+                
+                updateSelectedList();
+                showMessage(`✓ "${track.name}" añadida a tu lista`, 'success');
             }
             
             function updateSelectedList() {
                 $('#rockola-count').text(selectedSongs.length);
                 
+                if (selectedSongs.length === 0) {
+                    $('#rockola-selected-container').hide();
+                    return;
+                }
+                
+                $('#rockola-selected-container').show();
+                
                 let html = '';
                 selectedSongs.forEach((track, index) => {
                     html += `
-                    <div class="rockola-selected-item" style="background: white; padding: 10px; margin: 5px 0; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #1DB954;">
-                        <div style="flex: 1;">
-                            <strong>${escapeHtml(track.name)}</strong><br>
-                            <small style="color: #666;">${escapeHtml(track.artist)}</small>
+                    <div class="rockola-selected-item">
+                        <div>
+                            <strong>${escapeHtml(track.name)}</strong>
+                            <small>${escapeHtml(track.artist)}</small>
                         </div>
-                        <button class="rockola-remove-btn" data-index="${index}" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px;">
-                            Eliminar
+                        <button class="rockola-remove-btn" data-index="${index}">
+                            ✕ Quitar
                         </button>
                     </div>`;
                 });
                 
                 $('#rockola-selected-list').html(html);
                 
-                // Bind remove buttons
+                $('#rockola-submit-main').prop('disabled', selectedSongs.length === 0);
+                
                 $('.rockola-remove-btn').on('click', function() {
                     const index = $(this).data('index');
                     const removedTrack = selectedSongs[index];
@@ -805,56 +1046,25 @@ class Rockola_Public {
                     selectedSongs.splice(index, 1);
                     addedTrackUris = addedTrackUris.filter(uri => uri !== removedTrack.uri);
                     
-                    // Reactivar botón en resultados
-                    $(`.rockola-add-btn[data-track-uri="${removedTrack.uri}"]`)
+                    $(`.rockola-add-btn[data-track*='"${removedTrack.uri}"']`)
                         .removeClass('added')
-                        .text('Añadir')
+                        .text('+ Añadir')
                         .prop('disabled', false);
                     
                     updateSelectedList();
-                    updateSubmitButton();
-                    showMessage(`Canción "${removedTrack.name}" removida', 'warning`);
+                    showMessage(`Canción removida`, 'warning');
                 });
             }
             
-            function updateSubmitButton() {
-                // Verificar dos condiciones:
-                // 1. Hay canciones seleccionadas
-                // 2. Las canciones seleccionadas no exceden el límite diario
-                const totalSelected = selectedSongs.length;
-                const canSubmit = totalSelected > 0 && totalSelected <= userSession.dailyRemaining;
-                
-                $('#rockola-submit').prop('disabled', !canSubmit);
-                
-                if (totalSelected > 0) {
-                    const remainingAfterSubmit = userSession.dailyRemaining - totalSelected;
-                    let text = `Enviar ${totalSelected} canción${totalSelected > 1 ? 'es' : ''}`;
-                    
-                    if (remainingAfterSubmit < 0) {
-                        text += ' (excede límite)';
-                    }
-                    
-                    $('#rockola-submit').text(text);
-                } else {
-                    $('#rockola-submit').text('Enviar Solicitud');
-                }
-            }
+            // ==================== ENVIAR A SPOTIFY ====================
             
-            // Enviar solicitud - VERSIÓN CORREGIDA
-            $('#rockola-submit').on('click', function() {
+            $('#rockola-submit-main').on('click', function() {
                 if (selectedSongs.length === 0) return;
                 
-                const userData = {
-                    user_id: userSession.id,
-                    name: userSession.name,
-                    email: userSession.email,
-                    whatsapp: userSession.whatsapp,
-                    birthday: userSession.birthday
-                };
-                
-                const $submitBtn = $(this);
+                const $btn = $(this);
                 const totalSongs = selectedSongs.length;
-                $submitBtn.prop('disabled', true).text(`Enviando 0/${totalSongs}`);
+                
+                $btn.prop('disabled', true).html(`🚀 Enviando... 0/${totalSongs}`);
                 
                 let sentCount = 0;
                 let errors = [];
@@ -862,52 +1072,44 @@ class Rockola_Public {
                 
                 function sendNextSong() {
                     if (sentCount >= totalSongs) {
-                        // Todas enviadas
-                        $submitBtn.prop('disabled', false).text('Enviar Solicitud');
+                        $btn.prop('disabled', false).html('🚀 Enviar a Spotify');
                         
                         if (errors.length === 0) {
-                            // ✅ ÉXITO TOTAL - MOSTRAR POPUP
                             showPopup(
-                                '🎉 ¡Canciones Enviadas!',
-                                `<strong>${totalSongs}</strong> ${totalSongs === 1 ? 'canción ha' : 'canciones han'} sido añadidas a la cola de reproducción.<br><br>
+                                '¡Canciones Enviadas!',
+                                `<strong>${totalSongs}</strong> ${totalSongs === 1 ? 'canción ha' : 'canciones han'} sido añadidas a Spotify.<br><br>
                                 <strong>Te quedan ${userSession.dailyRemaining} ${userSession.dailyRemaining === 1 ? 'canción' : 'canciones'} disponibles hoy.</strong><br><br>
-                                <small>🎵 Tus canciones sonarán pronto en Spotify</small>`,
+                                <small>🎵 Tus canciones sonarán pronto</small>`,
                                 'success'
                             );
                             
-                            // Resetear selección
                             selectedSongs = [];
                             addedTrackUris = [];
                             updateSelectedList();
-                            updateSubmitButton();
+                            
+                            if ($('#rockola-search').val().trim()) {
+                                searchTracks();
+                            }
                             
                         } else if (successfulSongs.length > 0) {
-                            // ⚠️ ÉXITO PARCIAL
                             showPopup(
-                                '⚠️ Envío Parcial',
+                                'Envío Parcial',
                                 `Se enviaron <strong>${successfulSongs.length} de ${totalSongs}</strong> canciones.<br><br>
-                                <strong>Canciones exitosas:</strong><br>
-                                ${successfulSongs.map(s => '• ' + s).join('<br>')}<br><br>
-                                <strong>Errores:</strong><br>
-                                ${errors.map(e => '• ' + e).join('<br>')}`,
+                                <strong>Errores:</strong><br>${errors.slice(0, 3).join('<br>')}<br><br>
+                                <small>Te quedan ${userSession.dailyRemaining} canciones disponibles.</small>`,
                                 'warning'
                             );
                             
-                            // Resetear solo las exitosas
                             selectedSongs = selectedSongs.filter(track => 
                                 !successfulSongs.includes(track.name)
                             );
                             updateSelectedList();
-                            updateSubmitButton();
                             
                         } else {
-                            // ❌ TODO FALLÓ
                             showPopup(
-                                '❌ Error al Enviar',
+                                'Error al Enviar',
                                 `No se pudo enviar ninguna canción.<br><br>
-                                <strong>Errores:</strong><br>
-                                ${errors.map(e => '• ' + e).join('<br>')}<br><br>
-                                <small>Por favor, intenta de nuevo o contacta al administrador.</small>`,
+                                <small>Por favor, intenta de nuevo.</small>`,
                                 'error'
                             );
                         }
@@ -923,29 +1125,32 @@ class Rockola_Public {
                         data: {
                             action: 'rockola_add_to_queue',
                             nonce: rockola_ajax.nonce,
-                            ...userData,
+                            user_id: userSession.id,
+                            name: userSession.name,
+                            email: userSession.email,
+                            whatsapp: userSession.whatsapp,
+                            birthday: userSession.birthday,
                             track_uri: track.uri
                         },
                         success: function(response) {
                             sentCount++;
-                            $submitBtn.text(`Enviando ${sentCount}/${totalSongs}`);
+                            $btn.html(`🚀 Enviando... ${sentCount}/${totalSongs}`);
                             
                             if (response.success) {
                                 successfulSongs.push(track.name);
                                 
-                                // Actualizar contador
                                 if (response.data && response.data.remaining_today !== undefined) {
                                     userSession.dailyRemaining = response.data.remaining_today;
                                     $('#rockola-daily-remaining').text(userSession.dailyRemaining);
-                                    updateSubmitButton();
                                 }
                             } else {
-                                errors.push(track.name + ': ' + (response.data?.message || 'Error desconocido'));
+                                errors.push(track.name);
                             }
+                            
                             sendNextSong();
                         },
-                        error: function(xhr, status, error) {
-                            errors.push(track.name + ': Error de conexión');
+                        error: function() {
+                            errors.push(track.name);
                             sentCount++;
                             sendNextSong();
                         }
@@ -954,63 +1159,17 @@ class Rockola_Public {
                 
                 sendNextSong();
             });
-
             
-
-            // Eventos del popup (si no los tienes ya)
-            $(document).on('click', '#rockola-popup-close', function() {
-                $('#rockola-popup-overlay').fadeOut(300);
-            });
-
-            $(document).on('click', '#rockola-popup-overlay', function(e) {
-                if (e.target.id === 'rockola-popup-overlay') {
-                    $(this).fadeOut(300);
-                }
-            });
-
-            $(document).on('keydown', function(e) {
-                if (e.key === 'Escape' && $('#rockola-popup-overlay').is(':visible')) {
-                    $('#rockola-popup-overlay').fadeOut(300);
-                }
-            });
-
-            $(document).on('click', '#rockola-popup', function(e) {
-                e.stopPropagation();
-            });
+            // ==================== AUTO-LOAD ====================
             
-            // ==================== FUNCIONES UTILITARIAS ====================
-            function showMessage(text, type) {
-                const $msg = $('#rockola-message');
-                $msg.removeClass('success error warning')
-                    .addClass(type)
-                    .html(text)
-                    .fadeIn();
-                
-                setTimeout(() => {
-                    $msg.fadeOut();
-                }, 4000);
-            }
-            
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-            
-            function isValidEmail(email) {
-                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return re.test(email);
-            }
-            
-            // Auto-completar desde localStorage si existe
             const savedEmail = localStorage.getItem('rockola_user_email');
             const savedWhatsapp = localStorage.getItem('rockola_user_whatsapp');
             
             if (savedEmail) {
                 $('#rockola-verify-email').val(savedEmail);
-                if (savedWhatsapp) {
-                    $('#rockola-verify-whatsapp').val(savedWhatsapp);
-                }
+            }
+            if (savedWhatsapp) {
+                $('#rockola-verify-whatsapp').val(savedWhatsapp);
             }
         });
         </script>
@@ -1018,4 +1177,3 @@ class Rockola_Public {
         return ob_get_clean();
     }
 }
-// NO agregues nada después de esta línea
