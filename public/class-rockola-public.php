@@ -103,7 +103,7 @@ class Rockola_Public {
                 <div class="rockola-user-info">
                     <p>
                         <strong>👋 Hola, <span id="rockola-user-name"></span></strong>
-                        <small>Disponibles hoy: <strong id="rockola-daily-remaining">...</strong> canciones</small>
+                        <small>Elige las canciones que quieras para tu Rockola</small>
                     </p>
                     <button id="rockola-edit-info" class="rockola-btn-icon" title="Editar información">
                         ✏️ Editar
@@ -923,10 +923,9 @@ class Rockola_Public {
                                     dailyRemaining: remaining,
                                     isNewUser: false
                                 };
-                                
+
                                 $('#rockola-user-name').text(userData.name);
-                                $('#rockola-daily-remaining').text(remaining);
-                                
+
                                 showMessage('¡Bienvenido de nuevo ' + userData.name + '!', 'success');
                                 
                                 setTimeout(() => {
@@ -1023,10 +1022,9 @@ class Rockola_Public {
                             userSession.birthday = userData.birthday;
                             userSession.dailyRemaining = response.data.remaining || maxSongs;
                             userSession.id = response.data.user_id || userSession.id;
-                            
+
                             $('#rockola-user-name').text(userData.name);
-                            $('#rockola-daily-remaining').text(userSession.dailyRemaining);
-                            
+
                             showMessage('Información guardada correctamente', 'success');
                             
                             setTimeout(() => {
@@ -1107,14 +1105,13 @@ class Rockola_Public {
                     $('#rockola-results').html('<div style="padding: 40px; text-align: center; color: #b3b3b3;"><div style="font-size: 48px; margin-bottom: 16px;">😕</div>No se encontraron canciones</div>');
                     return;
                 }
-                
+
                 let html = '';
                 tracks.forEach(track => {
                     const trackName = escapeHtml(track.name);
                     const trackArtist = escapeHtml(track.artist);
                     const isAdded = addedTrackUris.includes(track.uri);
-                    const canAdd = userSession.dailyRemaining > selectedSongs.length;
-                    
+
                     html += `
                     <div class="rockola-track">
                         <img src="${track.image || ''}" alt="${trackName}">
@@ -1122,57 +1119,37 @@ class Rockola_Public {
                             <strong>${trackName}</strong>
                             <small>${trackArtist}</small>
                         </div>
-                        <button class="rockola-add-btn ${isAdded ? 'added' : ''}" 
+                        <button class="rockola-add-btn ${isAdded ? 'added' : ''}"
                                 data-track='${JSON.stringify(track)}'
-                                ${isAdded || !canAdd ? 'disabled' : ''}>
-                            ${isAdded ? '✓ Añadida' : (canAdd ? '+ Añadir' : 'Límite')}
+                                ${isAdded ? 'disabled' : ''}>
+                            ${isAdded ? '✓ Añadida' : '+ Añadir'}
                         </button>
                     </div>`;
                 });
-                
+
                 $('#rockola-results').html(html);
-                
+
                 $('.rockola-add-btn:not(.added):not(:disabled)').on('click', function() {
                     const track = JSON.parse($(this).attr('data-track'));
                     addTrack(track, $(this));
                 });
             }
-            
+
             function addTrack(track, $btn) {
-                if (selectedSongs.length >= maxSongs) {
-                    showPopup(
-                        'Límite de Selección',
-                        `Solo puedes seleccionar hasta <strong>${maxSongs}</strong> canciones por vez.<br><br>
-                        <small>Envía las canciones seleccionadas primero.</small>`,
-                        'warning'
-                    );
-                    return;
-                }
-                
                 if (selectedSongs.find(t => t.uri === track.uri)) {
                     showMessage('Esta canción ya está en tu lista', 'warning');
                     return;
                 }
-                
-                if (selectedSongs.length >= userSession.dailyRemaining) {
-                    showPopup(
-                        'Límite Diario Alcanzado',
-                        `Solo puedes añadir <strong>${userSession.dailyRemaining}</strong> canciones hoy.<br><br>
-                        <small>Podrás enviar más canciones mañana.</small>`,
-                        'warning'
-                    );
-                    return;
-                }
-                
+
                 selectedSongs.push(track);
                 addedTrackUris.push(track.uri);
-                
+
                 if ($btn) {
                     $btn.addClass('added')
                         .text('✓ Añadida')
                         .prop('disabled', true);
                 }
-                
+
                 updateSelectedList();
                 showMessage(`✓ "${track.name}" añadida a tu lista`, 'success');
             }
@@ -1244,15 +1221,15 @@ class Rockola_Public {
                             showPopup(
                                 '¡Canciones Enviadas!',
                                 `<strong>${totalSongs}</strong> ${totalSongs === 1 ? 'canción ha' : 'canciones han'} sido añadidas a Spotify.<br><br>
-                                <strong>Te quedan ${userSession.dailyRemaining} ${userSession.dailyRemaining === 1 ? 'canción' : 'canciones'} disponibles hoy.</strong><br><br>
-                                <small>🎵 Tus canciones sonarán pronto</small>`,
+                                <strong>¡Listo!</strong> Tus canciones están en la cola.<br><br>
+                                <small>🎵 Puedes seguir agregando más canciones cuando quieras</small>`,
                                 'success'
                             );
-                            
+
                             selectedSongs = [];
                             addedTrackUris = [];
                             updateSelectedList();
-                            
+
                             if ($('#rockola-search').val().trim()) {
                                 searchTracks();
                             }
@@ -1262,14 +1239,18 @@ class Rockola_Public {
                                 'Envío Parcial',
                                 `Se enviaron <strong>${successfulSongs.length} de ${totalSongs}</strong> canciones.<br><br>
                                 <strong>Errores:</strong><br>${errors.slice(0, 3).join('<br>')}<br><br>
-                                <small>Te quedan ${userSession.dailyRemaining} canciones disponibles.</small>`,
+                                <small>Las canciones enviadas han sido agregadas a la cola.</small>`,
                                 'warning'
                             );
-                            
-                            selectedSongs = selectedSongs.filter(track => 
+
+                            selectedSongs = selectedSongs.filter(track =>
                                 !successfulSongs.includes(track.name)
                             );
                             updateSelectedList();
+
+                            if ($('#rockola-search').val().trim()) {
+                                searchTracks();
+                            }
                             
                         } else {
                             showPopup(
@@ -1304,11 +1285,6 @@ class Rockola_Public {
                             
                             if (response.success) {
                                 successfulSongs.push(track.name);
-                                
-                                if (response.data && response.data.remaining_today !== undefined) {
-                                    userSession.dailyRemaining = response.data.remaining_today;
-                                    $('#rockola-daily-remaining').text(userSession.dailyRemaining);
-                                }
                             } else {
                                 errors.push(track.name);
                             }
