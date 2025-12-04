@@ -109,7 +109,26 @@ class Rockola_Public {
                         ✏️ Editar
                     </button>
                 </div>
-                
+
+                <!-- Now Playing Card -->
+                <div id="rockola-now-playing-card" class="rockola-now-playing" style="display: none;">
+                    <div class="rockola-now-playing-header">
+                        <div class="rockola-equalizer">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <h4>Estás escuchando</h4>
+                    </div>
+                    <div class="rockola-now-playing-content">
+                        <img id="rockola-np-image" src="" alt="Album Cover">
+                        <div class="rockola-np-info">
+                            <strong id="rockola-np-name">...</strong>
+                            <small id="rockola-np-artist">...</small>
+                        </div>
+                    </div>
+                </div>
+
                 <h3>🎶 Buscar Canciones</h3>
                 
                 <!-- Barra de búsqueda -->
@@ -336,7 +355,116 @@ class Rockola_Public {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.05);
         }
-        
+
+        /* NOW PLAYING CARD */
+        .rockola-now-playing {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .rockola-now-playing-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .rockola-now-playing-header h4 {
+            margin: 0;
+            color: var(--spotify-white);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .rockola-equalizer {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 20px;
+        }
+
+        .rockola-equalizer span {
+            width: 3px;
+            background: var(--spotify-white);
+            border-radius: 2px;
+            animation: equalize 1s ease-in-out infinite;
+        }
+
+        .rockola-equalizer span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .rockola-equalizer span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .rockola-equalizer span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes equalize {
+            0%, 100% {
+                height: 8px;
+            }
+            50% {
+                height: 20px;
+            }
+        }
+
+        .rockola-now-playing-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .rockola-now-playing-content img {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .rockola-np-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rockola-np-info strong {
+            display: block;
+            color: var(--spotify-white);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rockola-np-info small {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .rockola-search-box {
             display: flex;
             gap: 12px;
@@ -1324,6 +1452,90 @@ class Rockola_Public {
             }
             if (savedWhatsapp) {
                 $('#rockola-verify-whatsapp').val(savedWhatsapp);
+            }
+
+            // ==================== NOW PLAYING POLLING ====================
+
+            let nowPlayingInterval = null;
+            let currentTrackUri = null;
+
+            function fetchNowPlaying() {
+                $.ajax({
+                    url: rockola_ajax.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'rockola_get_currently_playing',
+                        nonce: rockola_ajax.nonce
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.track) {
+                            const track = response.data.track;
+
+                            // Solo actualizar si cambió la canción
+                            if (track.uri !== currentTrackUri) {
+                                currentTrackUri = track.uri;
+
+                                $('#rockola-np-image').attr('src', track.image);
+                                $('#rockola-np-name').text(track.name);
+                                $('#rockola-np-artist').text(track.artist);
+                                $('#rockola-now-playing-card').slideDown(300);
+                            }
+                        } else {
+                            // No hay nada sonando
+                            if (currentTrackUri !== null) {
+                                currentTrackUri = null;
+                                $('#rockola-now-playing-card').slideUp(300);
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.log('Error fetching now playing:', error);
+                    }
+                });
+            }
+
+            // Iniciar polling cuando el usuario está en el paso 2
+            function startNowPlayingPolling() {
+                if (nowPlayingInterval) return; // Ya está corriendo
+
+                fetchNowPlaying(); // Primera llamada inmediata
+                nowPlayingInterval = setInterval(fetchNowPlaying, 5000); // Actualizar cada 5 segundos
+                console.log('✅ Now Playing polling iniciado');
+            }
+
+            function stopNowPlayingPolling() {
+                if (nowPlayingInterval) {
+                    clearInterval(nowPlayingInterval);
+                    nowPlayingInterval = null;
+                    console.log('⏸️ Now Playing polling detenido');
+                }
+            }
+
+            // Observar cuando el usuario llega al paso 2
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.target.id === 'rockola-step-2') {
+                        if ($(mutation.target).is(':visible')) {
+                            startNowPlayingPolling();
+                        } else {
+                            stopNowPlayingPolling();
+                        }
+                    }
+                });
+            });
+
+            // Configurar el observer
+            const step2 = document.getElementById('rockola-step-2');
+            if (step2) {
+                observer.observe(step2, {
+                    attributes: true,
+                    attributeFilter: ['style']
+                });
+
+                // Si ya está visible, iniciar inmediatamente
+                if ($(step2).is(':visible')) {
+                    startNowPlayingPolling();
+                }
             }
         });
         </script>

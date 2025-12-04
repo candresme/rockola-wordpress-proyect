@@ -33,6 +33,9 @@ class Rockola_AJAX {
         
         add_action('wp_ajax_rockola_update_user', array($this, 'ajax_update_user'));
         add_action('wp_ajax_nopriv_rockola_update_user', array($this, 'ajax_update_user'));
+
+        add_action('wp_ajax_rockola_get_currently_playing', array($this, 'ajax_get_currently_playing'));
+        add_action('wp_ajax_nopriv_rockola_get_currently_playing', array($this, 'ajax_get_currently_playing'));
     }
     
     public function ajax_search_tracks() {
@@ -385,6 +388,26 @@ class Rockola_AJAX {
             }
             
         } catch (Exception $e) {
+            wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
+        }
+    }
+
+    public function ajax_get_currently_playing() {
+        if (!check_ajax_referer('rockola_nonce', 'nonce', false)) {
+            wp_send_json_error(array('message' => 'Nonce verification failed'));
+            return;
+        }
+
+        try {
+            $currently_playing = $this->spotify_api->get_currently_playing();
+
+            if ($currently_playing) {
+                wp_send_json_success(array('track' => $currently_playing));
+            } else {
+                wp_send_json_success(array('track' => null));
+            }
+        } catch (Exception $e) {
+            error_log("❌ Error en ajax_get_currently_playing: " . $e->getMessage());
             wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
         }
     }

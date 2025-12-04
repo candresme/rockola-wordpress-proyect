@@ -279,8 +279,65 @@ class Rockola_Spotify_API {
         } elseif ($code === 401) {
             error_log("💡 SOLUCIÓN: Reconecta la cuenta de Spotify en wp-admin");
         }
-        
+
         return false;
+    }
+
+    public function get_currently_playing() {
+        $token = $this->get_access_token();
+
+        if (!$token) {
+            error_log("❌ No hay token para obtener canción actual");
+            return null;
+        }
+
+        $response = wp_remote_get("https://api.spotify.com/v1/me/player/currently-playing", [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json'
+            ],
+            'timeout' => 10
+        ]);
+
+        if (is_wp_error($response)) {
+            error_log("❌ Error al obtener canción actual: " . $response->get_error_message());
+            return null;
+        }
+
+        $code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+
+        // Si no hay nada sonando, Spotify devuelve 204 (No Content)
+        if ($code === 204 || empty($body)) {
+            return null;
+        }
+
+        if ($code === 200) {
+            $data = json_decode($body, true);
+
+            if (!$data || !isset($data['item'])) {
+                return null;
+            }
+
+            $track = $data['item'];
+            $artists = array_map(function($artist) {
+                return $artist['name'];
+            }, $track['artists']);
+
+            return array(
+                'name' => $track['name'],
+                'artist' => implode(', ', $artists),
+                'album' => $track['album']['name'],
+                'image' => $track['album']['images'][0]['url'] ?? '',
+                'uri' => $track['uri'],
+                'is_playing' => $data['is_playing'] ?? false,
+                'progress_ms' => $data['progress_ms'] ?? 0,
+                'duration_ms' => $track['duration_ms'] ?? 0
+            );
+        }
+
+        error_log("❌ Error al obtener canción actual - Status: {$code}");
+        return null;
     }
 
     public function get_artist_genre($artist_id) {
