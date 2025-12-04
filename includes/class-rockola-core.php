@@ -67,9 +67,10 @@ class Rockola_Core {
                 if (method_exists($public, 'init')) {
                     $public->init();
                 }
-                
-                // Registrar shortcode
+
+                // Registrar shortcodes
                 add_shortcode('rockola_spotify_form', array($public, 'display_rockola_form'));
+                add_shortcode('rockola_now_playing', array($public, 'display_now_playing'));
             }
         }
     }

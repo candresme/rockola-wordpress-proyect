@@ -1542,4 +1542,263 @@ class Rockola_Public {
         <?php
         return ob_get_clean();
     }
+
+    /**
+     * Display solo la card "Now Playing"
+     * Uso: [rockola_now_playing]
+     */
+    public function display_now_playing($atts = array()) {
+        $atts = shortcode_atts(array(
+            'theme' => 'blue' // blue, green, purple
+        ), $atts);
+
+        // Determinar colores según el tema
+        $themes = array(
+            'blue' => array('from' => '#1e3a8a', 'to' => '#3b82f6', 'shadow' => 'rgba(59, 130, 246, 0.3)'),
+            'green' => array('from' => '#065f46', 'to' => '#10b981', 'shadow' => 'rgba(16, 185, 129, 0.3)'),
+            'purple' => array('from' => '#581c87', 'to' => '#a855f7', 'shadow' => 'rgba(168, 85, 247, 0.3)'),
+            'red' => array('from' => '#991b1b', 'to' => '#ef4444', 'shadow' => 'rgba(239, 68, 68, 0.3)')
+        );
+
+        $theme = isset($themes[$atts['theme']]) ? $themes[$atts['theme']] : $themes['blue'];
+
+        ob_start();
+        ?>
+        <style>
+        :root {
+            --spotify-black: #191414;
+            --spotify-dark-gray: #121212;
+            --spotify-gray: #282828;
+            --spotify-light-gray: #b3b3b3;
+            --spotify-white: #ffffff;
+            --spotify-green: #1db954;
+        }
+
+        .rockola-np-widget {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+        }
+
+        .rockola-np-card {
+            background: linear-gradient(135deg, <?php echo $theme['from']; ?> 0%, <?php echo $theme['to']; ?> 100%);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px <?php echo $theme['shadow']; ?>;
+            animation: npSlideIn 0.5s ease;
+            display: none;
+        }
+
+        .rockola-np-card.visible {
+            display: block;
+        }
+
+        @keyframes npSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .rockola-np-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .rockola-np-header h3 {
+            margin: 0;
+            color: var(--spotify-white);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .rockola-np-equalizer {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 24px;
+        }
+
+        .rockola-np-equalizer span {
+            width: 4px;
+            background: var(--spotify-white);
+            border-radius: 2px;
+            animation: npEqualize 1s ease-in-out infinite;
+        }
+
+        .rockola-np-equalizer span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .rockola-np-equalizer span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .rockola-np-equalizer span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes npEqualize {
+            0%, 100% {
+                height: 10px;
+            }
+            50% {
+                height: 24px;
+            }
+        }
+
+        .rockola-np-content {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .rockola-np-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            object-fit: cover;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .rockola-np-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rockola-np-name {
+            display: block;
+            color: var(--spotify-white);
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rockola-np-artist {
+            display: block;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 16px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rockola-np-placeholder {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        @media (max-width: 640px) {
+            .rockola-np-card {
+                padding: 20px;
+            }
+
+            .rockola-np-content {
+                gap: 16px;
+            }
+
+            .rockola-np-image {
+                width: 80px;
+                height: 80px;
+            }
+
+            .rockola-np-name {
+                font-size: 18px;
+            }
+
+            .rockola-np-artist {
+                font-size: 14px;
+            }
+        }
+        </style>
+
+        <div class="rockola-np-widget" id="rockola-np-widget-<?php echo uniqid(); ?>">
+            <div class="rockola-np-card">
+                <div class="rockola-np-header">
+                    <div class="rockola-np-equalizer">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <h3>Estás escuchando</h3>
+                </div>
+                <div class="rockola-np-content">
+                    <img class="rockola-np-image" src="" alt="Album Cover">
+                    <div class="rockola-np-info">
+                        <strong class="rockola-np-name">...</strong>
+                        <small class="rockola-np-artist">...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        jQuery(document).ready(function($) {
+            const $widget = $('.rockola-np-widget').last();
+            const $card = $widget.find('.rockola-np-card');
+            const $image = $widget.find('.rockola-np-image');
+            const $name = $widget.find('.rockola-np-name');
+            const $artist = $widget.find('.rockola-np-artist');
+
+            let currentUri = null;
+            let pollInterval = null;
+
+            function fetchNowPlaying() {
+                $.ajax({
+                    url: '<?php echo admin_url('admin-ajax.php'); ?>',
+                    type: 'POST',
+                    data: {
+                        action: 'rockola_get_currently_playing',
+                        nonce: '<?php echo wp_create_nonce('rockola_nonce'); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.track) {
+                            const track = response.data.track;
+
+                            if (track.uri !== currentUri) {
+                                currentUri = track.uri;
+                                $image.attr('src', track.image);
+                                $name.text(track.name);
+                                $artist.text(track.artist);
+                                $card.addClass('visible');
+                            }
+                        } else {
+                            if (currentUri !== null) {
+                                currentUri = null;
+                                $card.removeClass('visible');
+                            }
+                        }
+                    },
+                    error: function() {
+                        console.log('Error fetching now playing for widget');
+                    }
+                });
+            }
+
+            // Iniciar polling
+            fetchNowPlaying();
+            pollInterval = setInterval(fetchNowPlaying, 5000);
+
+            // Limpiar al salir
+            $(window).on('beforeunload', function() {
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                }
+            });
+        });
+        </script>
+        <?php
+        return ob_get_clean();
+    }
 }
