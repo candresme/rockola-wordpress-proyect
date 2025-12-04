@@ -158,32 +158,18 @@ class Rockola_AJAX {
                     error_log("✅ Usuario existente: ID {$user->id}");
                 }
             }
-            
-            // 2. VERIFICAR LÍMITE ANTES
-            $remaining_before = $this->db->get_remaining_songs_today($data['user_id']);
-            error_log("📊 Restantes ANTES: {$remaining_before}");
-            
-            if ($remaining_before <= 0) {
-                error_log("❌ Límite alcanzado");
-                wp_send_json_error(array(
-                    'message' => 'Límite diario alcanzado',
-                    'remaining' => 0
-                ));
-                return;
-            }
-            
-            // 3. VERIFICAR DUPLICADOS
+
+            // 2. VERIFICAR DUPLICADOS
             $track_id = str_replace('spotify:track:', '', $data['track_uri']);
             if ($this->db->check_duplicate_today($data['user_id'], $track_id)) {
                 error_log("❌ Canción duplicada");
                 wp_send_json_error(array(
-                    'message' => 'Ya enviaste esta canción hoy',
-                    'remaining' => $remaining_before
+                    'message' => 'Ya enviaste esta canción hoy'
                 ));
                 return;
             }
-            
-            // 4. AÑADIR A SPOTIFY
+
+            // 3. AÑADIR A SPOTIFY
             error_log("🎵 Añadiendo a Spotify: {$data['track_uri']}");
             if ($this->spotify_api && method_exists($this->spotify_api, 'add_to_queue')) {
                 $success = $this->spotify_api->add_to_queue($data['track_uri']);
@@ -195,8 +181,8 @@ class Rockola_AJAX {
                 }
                 error_log("✅ Añadido a Spotify");
             }
-            
-            // 5. OBTENER DETALLES
+
+            // 4. OBTENER DETALLES
             $track_details = $this->spotify_api->get_track_details($track_id);
             
             if (!$track_details) {
@@ -223,8 +209,8 @@ class Rockola_AJAX {
                 }
                 $artist_name = implode(', ', $artists);
             }
-            
-            // 6. PREPARAR DATOS - CRÍTICO: user_id debe estar aquí
+
+            // 5. PREPARAR DATOS - CRÍTICO: user_id debe estar aquí
             $submission_data = array(
                 'user_id' => $data['user_id'], // ⭐ CRUCIAL
                 'name' => $data['name'],
@@ -244,26 +230,21 @@ class Rockola_AJAX {
             );
             
             error_log("💾 Guardando con user_id: " . $submission_data['user_id']);
-            
-            // 7. GUARDAR EN BD
+
+            // 6. GUARDAR EN BD
             $saved = $this->db->save_submission($submission_data);
-            
+
             if (!$saved) {
                 error_log("❌ Error al guardar en BD");
                 wp_send_json_error(array('message' => 'Error al guardar en BD'));
                 return;
             }
-            
+
             error_log("✅ Guardado con ID: {$saved}");
-            
-            // 8. OBTENER CONTADOR ACTUALIZADO DESPUÉS DE GUARDAR
-            $remaining_after = $this->db->get_remaining_songs_today($data['user_id']);
-            error_log("📊 Restantes DESPUÉS: {$remaining_after}");
             error_log("========== FIN AJAX ==========");
-            
+
             wp_send_json_success(array(
                 'message' => 'Canción añadida exitosamente',
-                'remaining_today' => $remaining_after,
                 'user_id' => $data['user_id'],
                 'saved_id' => $saved
             ));
