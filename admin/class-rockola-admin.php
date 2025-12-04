@@ -71,16 +71,21 @@ class Rockola_Admin {
     public function register_settings() {
         register_setting('rockola_settings_group', 'rockola_settings', array($this, 'sanitize_settings'));
 
-        // Usar el hook correcto para WordPress 5.5+
-        add_filter('allowed_options', function($allowed_options) {
-            if (!isset($allowed_options['rockola_settings_group'])) {
-                $allowed_options['rockola_settings_group'] = array();
-            }
-            if (!in_array('rockola_settings', $allowed_options['rockola_settings_group'])) {
-                $allowed_options['rockola_settings_group'][] = 'rockola_settings';
-            }
-            return $allowed_options;
-        });
+        // Usar el hook correcto para WordPress 5.5+ con prioridad alta
+        add_filter('allowed_options', array($this, 'add_allowed_options'), 1);
+    }
+
+    /**
+     * Agregar opciones permitidas (WordPress 5.5+)
+     */
+    public function add_allowed_options($allowed_options) {
+        if (!isset($allowed_options['rockola_settings_group'])) {
+            $allowed_options['rockola_settings_group'] = array();
+        }
+        if (!in_array('rockola_settings', $allowed_options['rockola_settings_group'])) {
+            $allowed_options['rockola_settings_group'][] = 'rockola_settings';
+        }
+        return $allowed_options;
     }
     
     /**

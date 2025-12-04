@@ -145,6 +145,16 @@ class Rockola_DB {
             error_log('✅ Columna user_ip agregada a submissions');
         }
 
+        // Verificar y agregar columna spotify_uri si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'spotify_uri'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN spotify_uri varchar(255) DEFAULT '' AFTER album_name");
+            error_log('✅ Columna spotify_uri agregada a submissions');
+        }
+
         error_log('✅ Migración de base de datos completada');
     }
 
