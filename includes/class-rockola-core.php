@@ -36,27 +36,17 @@ class Rockola_Core {
                 $api->init();
             }
         }
-        
-        // 2. AJAX - PROBLEMA: requiere parámetros en constructor
-        // SOLUCIÓN: Usar reflexión o modificar la clase
+
+        // 2. AJAX - Inicializar siempre
         if (class_exists('Rockola_AJAX')) {
-            // Verificar si el constructor requiere parámetros
-            $reflection = new ReflectionClass('Rockola_AJAX');
-            $constructor = $reflection->getConstructor();
-            
-            if ($constructor && $constructor->getNumberOfRequiredParameters() > 0) {
-                // El constructor requiere parámetros - intentar crear sin ellos
-                // Esto puede fallar, mejor modificar la clase AJAX
-                error_log('Rockola: AJAX class requires constructor parameters');
-            } else {
-                // Constructor sin parámetros requeridos o sin constructor
-                $ajax = new Rockola_AJAX();
-                if (method_exists($ajax, 'init')) {
-                    $ajax->init();
-                }
+            $ajax = new Rockola_AJAX();
+            if (method_exists($ajax, 'init')) {
+                $ajax->init();
             }
+        } else {
+            error_log('❌ Rockola: AJAX class not found');
         }
-        
+
         // 3. Admin - ya lo corregimos sin parámetros
         if (class_exists('Rockola_Admin')) {
             $admin = new Rockola_Admin();

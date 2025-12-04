@@ -399,6 +399,20 @@ class Rockola_AJAX {
         }
 
         try {
+            // Verificar que spotify_api existe
+            if (!$this->spotify_api) {
+                error_log("❌ ajax_get_currently_playing: spotify_api no está inicializado");
+                wp_send_json_success(array('track' => null));
+                return;
+            }
+
+            // Verificar que el método existe
+            if (!method_exists($this->spotify_api, 'get_currently_playing')) {
+                error_log("❌ ajax_get_currently_playing: método get_currently_playing no existe");
+                wp_send_json_success(array('track' => null));
+                return;
+            }
+
             $currently_playing = $this->spotify_api->get_currently_playing();
 
             if ($currently_playing) {
@@ -408,6 +422,7 @@ class Rockola_AJAX {
             }
         } catch (Exception $e) {
             error_log("❌ Error en ajax_get_currently_playing: " . $e->getMessage());
+            error_log("❌ Stack trace: " . $e->getTraceAsString());
             wp_send_json_error(array('message' => 'Error: ' . $e->getMessage()));
         }
     }

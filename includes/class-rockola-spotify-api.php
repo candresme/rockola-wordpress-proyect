@@ -284,12 +284,16 @@ class Rockola_Spotify_API {
     }
 
     public function get_currently_playing() {
+        error_log("🎵 get_currently_playing: iniciando...");
+
         $token = $this->get_access_token();
 
         if (!$token) {
             error_log("❌ No hay token para obtener canción actual");
             return null;
         }
+
+        error_log("✅ Token obtenido, llamando a Spotify API...");
 
         $response = wp_remote_get("https://api.spotify.com/v1/me/player/currently-playing", [
             'headers' => [
@@ -307,8 +311,11 @@ class Rockola_Spotify_API {
         $code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
 
+        error_log("📡 Spotify currently-playing response code: {$code}");
+
         // Si no hay nada sonando, Spotify devuelve 204 (No Content)
         if ($code === 204 || empty($body)) {
+            error_log("ℹ️ No hay nada sonando actualmente");
             return null;
         }
 
@@ -316,6 +323,7 @@ class Rockola_Spotify_API {
             $data = json_decode($body, true);
 
             if (!$data || !isset($data['item'])) {
+                error_log("⚠️ Respuesta sin item");
                 return null;
             }
 
@@ -324,7 +332,7 @@ class Rockola_Spotify_API {
                 return $artist['name'];
             }, $track['artists']);
 
-            return array(
+            $result = array(
                 'name' => $track['name'],
                 'artist' => implode(', ', $artists),
                 'album' => $track['album']['name'],
@@ -334,6 +342,9 @@ class Rockola_Spotify_API {
                 'progress_ms' => $data['progress_ms'] ?? 0,
                 'duration_ms' => $track['duration_ms'] ?? 0
             );
+
+            error_log("✅ Canción actual: " . $result['name'] . " - " . $result['artist']);
+            return $result;
         }
 
         error_log("❌ Error al obtener canción actual - Status: {$code}");
