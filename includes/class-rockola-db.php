@@ -23,6 +23,132 @@ class Rockola_DB {
     }
 
     /**
+     * Crear tablas necesarias para el plugin
+     */
+    public function create_tables() {
+        global $wpdb;
+
+        $charset_collate = $wpdb->get_charset_collate();
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
+        // Tabla de usuarios
+        $sql_users = "CREATE TABLE IF NOT EXISTS {$this->table_users} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            name varchar(255) NOT NULL,
+            email varchar(255) NOT NULL,
+            whatsapp varchar(50) DEFAULT '',
+            birthday date DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY email (email),
+            KEY whatsapp (whatsapp)
+        ) $charset_collate;";
+
+        dbDelta($sql_users);
+
+        // Tabla de submissions (canciones pedidas)
+        $sql_submissions = "CREATE TABLE IF NOT EXISTS {$this->table_submissions} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) DEFAULT 0,
+            name varchar(255) DEFAULT '',
+            email varchar(255) DEFAULT '',
+            whatsapp varchar(50) DEFAULT '',
+            birthday date DEFAULT NULL,
+            track_id varchar(100) DEFAULT '',
+            track_name varchar(255) NOT NULL,
+            artist_name varchar(255) NOT NULL,
+            album_name varchar(255) DEFAULT '',
+            spotify_uri varchar(255) DEFAULT '',
+            genre varchar(100) DEFAULT '',
+            image_url text DEFAULT '',
+            preview_url text DEFAULT '',
+            user_ip varchar(50) DEFAULT '',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY created_at (created_at),
+            KEY track_id (track_id)
+        ) $charset_collate;";
+
+        dbDelta($sql_submissions);
+
+        // Tabla de estadísticas
+        $sql_stats = "CREATE TABLE IF NOT EXISTS {$this->table_stats} (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            stat_date date NOT NULL,
+            total_requests int(11) DEFAULT 0,
+            total_users int(11) DEFAULT 0,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY stat_date (stat_date)
+        ) $charset_collate;";
+
+        dbDelta($sql_stats);
+
+        error_log('✅ Tablas de Rockola creadas/actualizadas correctamente');
+    }
+
+    /**
+     * Migrar base de datos - agregar columnas faltantes
+     */
+    public function migrate_database() {
+        global $wpdb;
+
+        // Verificar y agregar columna user_id si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'user_id'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN user_id bigint(20) DEFAULT 0 AFTER id");
+            error_log('✅ Columna user_id agregada a submissions');
+        }
+
+        // Verificar y agregar columna track_id si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'track_id'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN track_id varchar(100) DEFAULT '' AFTER birthday");
+            error_log('✅ Columna track_id agregada a submissions');
+        }
+
+        // Verificar y agregar columna image_url si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'image_url'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN image_url text DEFAULT '' AFTER genre");
+            error_log('✅ Columna image_url agregada a submissions');
+        }
+
+        // Verificar y agregar columna preview_url si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'preview_url'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN preview_url text DEFAULT '' AFTER image_url");
+            error_log('✅ Columna preview_url agregada a submissions');
+        }
+
+        // Verificar y agregar columna user_ip si no existe
+        $column_exists = $wpdb->get_results(
+            "SHOW COLUMNS FROM {$this->table_submissions} LIKE 'user_ip'"
+        );
+
+        if (empty($column_exists)) {
+            $wpdb->query("ALTER TABLE {$this->table_submissions} ADD COLUMN user_ip varchar(50) DEFAULT '' AFTER preview_url");
+            error_log('✅ Columna user_ip agregada a submissions');
+        }
+
+        error_log('✅ Migración de base de datos completada');
+    }
+
+    /**
      * Obtener límite diario desde configuración
      */
     public function get_daily_limit() {

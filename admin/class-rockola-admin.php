@@ -70,6 +70,17 @@ class Rockola_Admin {
      */
     public function register_settings() {
         register_setting('rockola_settings_group', 'rockola_settings', array($this, 'sanitize_settings'));
+
+        // Usar el hook correcto para WordPress 5.5+
+        add_filter('allowed_options', function($allowed_options) {
+            if (!isset($allowed_options['rockola_settings_group'])) {
+                $allowed_options['rockola_settings_group'] = array();
+            }
+            if (!in_array('rockola_settings', $allowed_options['rockola_settings_group'])) {
+                $allowed_options['rockola_settings_group'][] = 'rockola_settings';
+            }
+            return $allowed_options;
+        });
     }
     
     /**
