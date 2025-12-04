@@ -123,7 +123,7 @@ class Rockola_Public {
                 
                 <!-- Lista flotante de canciones seleccionadas -->
                 <div id="rockola-selected-container" class="rockola-selected" style="display: none;">
-                    <h4>🎵 Tu Lista: <span id="rockola-count">0</span>/<?php echo $atts['max_songs']; ?></h4>
+                    <h4>Tus Canciones Seleccionadas</h4>
                     <div id="rockola-selected-list"></div>
                     <button id="rockola-submit-main" class="rockola-btn rockola-btn-primary" disabled>
                         🚀 Enviar a Spotify
@@ -1155,8 +1155,6 @@ class Rockola_Public {
             }
             
             function updateSelectedList() {
-                $('#rockola-count').text(selectedSongs.length);
-                
                 if (selectedSongs.length === 0) {
                     $('#rockola-selected-container').hide();
                     return;
