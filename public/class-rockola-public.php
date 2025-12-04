@@ -386,73 +386,82 @@ class Rockola_Public {
         }
         
         .rockola-track {
-            padding: 16px 20px;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
             transition: all 0.2s ease;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            position: relative;
         }
-        
-        .rockola-track:hover {
-            background: rgba(255, 255, 255, 0.1);
+
+        .rockola-track:hover:not(.track-added) {
+            background: rgba(29, 185, 84, 0.1);
         }
-        
+
+        .rockola-track.track-added {
+            opacity: 0.6;
+            cursor: default;
+            background: rgba(29, 185, 84, 0.15);
+        }
+
         .rockola-track img {
             width: 56px;
             height: 56px;
             border-radius: 4px;
             object-fit: cover;
+            flex-shrink: 0;
         }
-        
+
         .rockola-track-info {
             flex: 1;
+            min-width: 0;
         }
-        
+
         .rockola-track-info strong {
             display: block;
             color: var(--spotify-white);
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
+
         .rockola-track-info small {
             color: var(--spotify-light-gray);
-            font-size: 14px;
-        }
-        
-        .rockola-add-btn {
-            background: transparent;
-            color: var(--spotify-green);
-            border: 2px solid var(--spotify-green);
-            padding: 10px 24px;
-            border-radius: 500px;
             font-size: 13px;
-            font-weight: 700;
-            cursor: pointer;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .rockola-add-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--spotify-green);
+            color: var(--spotify-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 300;
             transition: all 0.2s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
+            flex-shrink: 0;
         }
-        
-        .rockola-add-btn:hover:not(:disabled):not(.added) {
-            background: var(--spotify-green);
-            color: var(--spotify-white);
-            transform: scale(1.05);
+
+        .rockola-track:hover:not(.track-added) .rockola-add-icon {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(29, 185, 84, 0.4);
         }
-        
-        .rockola-add-btn.added {
-            background: var(--spotify-green);
-            color: var(--spotify-white);
-            border-color: var(--spotify-green);
-            cursor: default;
-        }
-        
-        .rockola-add-btn:disabled {
-            border-color: var(--spotify-gray);
-            color: var(--spotify-gray);
-            cursor: not-allowed;
+
+        .rockola-track.track-added .rockola-add-icon {
+            background: var(--spotify-white);
+            color: var(--spotify-green);
         }
         
         .rockola-selected {
@@ -652,7 +661,7 @@ class Rockola_Public {
             }
 
             .rockola-track {
-                padding: 12px;
+                padding: 14px;
                 gap: 12px;
                 border-radius: 8px;
                 margin-bottom: 8px;
@@ -660,8 +669,8 @@ class Rockola_Public {
                 border-bottom: none;
             }
 
-            .rockola-track:hover {
-                background: rgba(255, 255, 255, 0.08);
+            .rockola-track:hover:not(.track-added) {
+                background: rgba(29, 185, 84, 0.15);
             }
 
             .rockola-track img {
@@ -684,6 +693,7 @@ class Rockola_Public {
                 -webkit-line-clamp: 2;
                 -webkit-box-orient: vertical;
                 overflow: hidden;
+                white-space: normal;
             }
 
             .rockola-track-info small {
@@ -694,12 +704,10 @@ class Rockola_Public {
                 text-overflow: ellipsis;
             }
 
-            .rockola-add-btn {
-                padding: 8px 16px;
-                font-size: 11px;
-                letter-spacing: 0.05em;
-                white-space: nowrap;
-                flex-shrink: 0;
+            .rockola-add-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 26px;
             }
 
             /* USER INFO CARD MÓVIL */
@@ -1113,29 +1121,27 @@ class Rockola_Public {
                     const isAdded = addedTrackUris.includes(track.uri);
 
                     html += `
-                    <div class="rockola-track">
+                    <div class="rockola-track ${isAdded ? 'track-added' : ''}" data-track='${JSON.stringify(track)}'>
                         <img src="${track.image || ''}" alt="${trackName}">
                         <div class="rockola-track-info">
                             <strong>${trackName}</strong>
                             <small>${trackArtist}</small>
                         </div>
-                        <button class="rockola-add-btn ${isAdded ? 'added' : ''}"
-                                data-track='${JSON.stringify(track)}'
-                                ${isAdded ? 'disabled' : ''}>
-                            ${isAdded ? '✓ Añadida' : '+ Añadir'}
-                        </button>
+                        <div class="rockola-add-icon">
+                            ${isAdded ? '✓' : '+'}
+                        </div>
                     </div>`;
                 });
 
                 $('#rockola-results').html(html);
 
-                $('.rockola-add-btn:not(.added):not(:disabled)').on('click', function() {
+                $('.rockola-track:not(.track-added)').on('click', function() {
                     const track = JSON.parse($(this).attr('data-track'));
                     addTrack(track, $(this));
                 });
             }
 
-            function addTrack(track, $btn) {
+            function addTrack(track, $trackElement) {
                 if (selectedSongs.find(t => t.uri === track.uri)) {
                     showMessage('Esta canción ya está en tu lista', 'warning');
                     return;
@@ -1144,10 +1150,11 @@ class Rockola_Public {
                 selectedSongs.push(track);
                 addedTrackUris.push(track.uri);
 
-                if ($btn) {
-                    $btn.addClass('added')
-                        .text('✓ Añadida')
-                        .prop('disabled', true);
+                if ($trackElement) {
+                    $trackElement.addClass('track-added')
+                        .off('click')
+                        .find('.rockola-add-icon')
+                        .text('✓');
                 }
 
                 updateSelectedList();
@@ -1201,12 +1208,15 @@ class Rockola_Public {
             
             $('#rockola-submit-main').on('click', function() {
                 if (selectedSongs.length === 0) return;
-                
+
+                console.log('🚀 Iniciando envío de canciones:', selectedSongs);
+                console.log('👤 Sesión de usuario:', userSession);
+
                 const $btn = $(this);
                 const totalSongs = selectedSongs.length;
-                
+
                 $btn.prop('disabled', true).html(`🚀 Enviando... 0/${totalSongs}`);
-                
+
                 let sentCount = 0;
                 let errors = [];
                 let successfulSongs = [];
@@ -1278,18 +1288,22 @@ class Rockola_Public {
                             track_uri: track.uri
                         },
                         success: function(response) {
+                            console.log('✅ Respuesta AJAX:', response);
                             sentCount++;
                             $btn.html(`🚀 Enviando... ${sentCount}/${totalSongs}`);
-                            
+
                             if (response.success) {
+                                console.log('✓ Canción enviada exitosamente:', track.name);
                                 successfulSongs.push(track.name);
                             } else {
+                                console.error('❌ Error en respuesta:', response);
                                 errors.push(track.name);
                             }
-                            
+
                             sendNextSong();
                         },
-                        error: function() {
+                        error: function(xhr, status, error) {
+                            console.error('❌ Error AJAX:', {xhr, status, error});
                             errors.push(track.name);
                             sentCount++;
                             sendNextSong();
