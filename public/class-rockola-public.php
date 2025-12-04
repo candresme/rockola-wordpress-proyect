@@ -602,25 +602,191 @@ class Rockola_Public {
         }
         
         @media (max-width: 768px) {
+            .rockola-container {
+                padding: 12px;
+            }
+
             .rockola-step {
-                padding: 24px;
+                padding: 20px 16px;
+                border-radius: 12px;
             }
-            
+
             .rockola-step h3 {
-                font-size: 24px;
+                font-size: 22px;
             }
-            
+
+            .rockola-step p {
+                font-size: 14px;
+            }
+
             .rockola-btn {
                 padding: 14px 32px;
                 font-size: 14px;
             }
-            
+
             .rockola-search-box {
                 flex-direction: column;
+                gap: 12px;
             }
-            
+
+            .rockola-search-box input {
+                width: 100%;
+                padding: 14px 16px;
+                font-size: 15px;
+            }
+
+            .rockola-search-box .rockola-btn {
+                width: 100%;
+                padding: 14px;
+            }
+
             .rockola-actions {
                 flex-direction: column;
+            }
+
+            /* MEJORAS PARA LOS RESULTADOS DE BÚSQUEDA EN MÓVIL */
+            .rockola-results {
+                max-height: 60vh;
+                border-radius: 8px;
+                margin-bottom: 16px;
+            }
+
+            .rockola-track {
+                padding: 12px;
+                gap: 12px;
+                border-radius: 8px;
+                margin-bottom: 8px;
+                background: var(--spotify-black);
+                border-bottom: none;
+            }
+
+            .rockola-track:hover {
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            .rockola-track img {
+                width: 64px;
+                height: 64px;
+                border-radius: 6px;
+                flex-shrink: 0;
+            }
+
+            .rockola-track-info {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .rockola-track-info strong {
+                font-size: 15px;
+                line-height: 1.3;
+                margin-bottom: 4px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .rockola-track-info small {
+                font-size: 13px;
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .rockola-add-btn {
+                padding: 8px 16px;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            /* USER INFO CARD MÓVIL */
+            .rockola-user-info {
+                padding: 16px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .rockola-user-info p {
+                margin: 0;
+                width: 100%;
+            }
+
+            .rockola-user-info strong {
+                font-size: 18px;
+            }
+
+            .rockola-user-info small {
+                font-size: 13px;
+            }
+
+            .rockola-btn-icon {
+                align-self: flex-end;
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+
+            /* LISTA DE CANCIONES SELECCIONADAS MÓVIL */
+            .rockola-selected {
+                padding: 16px;
+                border-radius: 12px;
+                bottom: 10px;
+            }
+
+            .rockola-selected h4 {
+                font-size: 18px;
+                margin-bottom: 12px;
+            }
+
+            .rockola-selected-item {
+                padding: 10px 12px;
+                margin: 6px 0;
+                border-radius: 6px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .rockola-selected-item strong {
+                font-size: 14px;
+            }
+
+            .rockola-selected-item small {
+                font-size: 12px;
+            }
+
+            .rockola-remove-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            /* POPUP MÓVIL */
+            #rockola-popup {
+                padding: 24px 20px;
+                width: 90%;
+                max-width: 340px;
+            }
+
+            #rockola-popup-title {
+                font-size: 22px;
+            }
+
+            #rockola-popup-message {
+                font-size: 14px;
+            }
+
+            /* FORMULARIO MÓVIL */
+            .rockola-form-group input {
+                padding: 12px 14px;
+                font-size: 15px;
+            }
+
+            .rockola-form-group label {
+                font-size: 12px;
             }
         }
         </style>
